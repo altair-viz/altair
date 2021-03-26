@@ -68,6 +68,21 @@ Similarly, we must also specify the data type when referencing data by URL:
         y='Miles_per_Gallon:Q'
     )
 
+You can use any URL visible to your frontend (i.e. JupyterLab, Jupyter Notebook, Colab, VSCode, Streamlit, etc.)
+
+All of those frontends have different mechanisms for accessing local files (if they have a mechanism at all), so there is no way to provide general advice for how to proceed. By way of example, consider a JupyterLab setup with seattle-weather.csv and a notebook in the top level folder. In this case, the full URL needs to be given.
+
+.. altair-plot::
+
+    import altair as alt
+    url = 'http://localhost:8888/files/seattle-weather.csv'
+
+    alt.Chart(url).mark_bar().encode(
+        x='month(date):O',
+        y='count():Q',
+        color='weather:N'
+    )
+
 We will further discuss encodings and associated types in :ref:`user-guide-encoding`, next.
 
 
