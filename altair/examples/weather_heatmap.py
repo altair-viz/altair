@@ -8,7 +8,7 @@ import altair as alt
 from vega_datasets import data
 
 # Since the data is more than 5,000 rows we'll import it from a URL
-source = data.seattle_temps.url
+source = data.seattle_weather_hourly_normals.url
 
 alt.Chart(
     source,
@@ -16,9 +16,9 @@ alt.Chart(
 ).mark_rect().encode(
     x='date(date):O',
     y='month(date):O',
-    color=alt.Color('max(temp):Q', scale=alt.Scale(scheme="inferno")),
+    color=alt.Color('max(temperature):Q', scale=alt.Scale(scheme="inferno")),
     tooltip=[
         alt.Tooltip('monthdate(date):T', title='Date'),
-        alt.Tooltip('max(temp):Q', title='Max Temp')
+        alt.Tooltip('max(temperature):Q', title='Max Temp')
     ]
 ).properties(width=550)

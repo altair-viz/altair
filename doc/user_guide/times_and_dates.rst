@@ -89,7 +89,7 @@ containing hourly temperatures measured in Seattle:
     import altair as alt
     from vega_datasets import data
 
-    temps = data.seattle_temps()
+    temps = data.seattle_weather_hourly_normals.url
     temps.head()
 
 We can see from the ``dtypes`` attribute that the times are encoded as a standard
@@ -109,7 +109,7 @@ example, we'll limit ourselves to the first two weeks of data:
 
     alt.Chart(temps).mark_line().encode(
         x='date:T',
-        y='temp:Q'
+        y='temperature:Q'
     )
 
 (notice that for date/time values we use the ``T`` to indicate a temporal
@@ -128,7 +128,7 @@ x-axis, and day of the month on the y-axis:
     alt.Chart(temps).mark_rect().encode(
         alt.X('hoursminutes(date):O', title='hour of day'),
         alt.Y('monthdate(date):O', title='date'),
-        alt.Color('temp:Q', title='temperature (F)')
+        alt.Color('temperature:Q', title='temperature (F)')
     )
 
 Unless you are using a non-ES6 browser (See :ref:`note-browser-compliance`),
@@ -167,7 +167,7 @@ render **according to the timezone of the browser rendering it**:
     alt.Chart(temps).mark_rect().encode(
         alt.X('hoursminutes(date_pacific):O', title='hour of day'),
         alt.Y('monthdate(date_pacific):O', title='date'),
-        alt.Color('temp:Q', title='temperature (F)')
+        alt.Color('temperature:Q', title='temperature (F)')
     )
 
 If you are viewing this chart on a computer whose time is set to the west coast
@@ -195,7 +195,7 @@ regardless of the system location:
     alt.Chart(temps).mark_rect().encode(
         alt.X('utchoursminutes(date_pacific):O', title='UTC hour of day'),
         alt.Y('utcmonthdate(date_pacific):O', title='UTC date'),
-        alt.Color('temp:Q', title='temperature (F)')
+        alt.Color('temperature:Q', title='temperature (F)')
     )
 
 To make your charts as portable as possible (even in non-ES6 browsers which parse
@@ -210,7 +210,7 @@ in UTC time, both on the Pandas side and on the Vega-Lite side:
    alt.Chart(temps).mark_rect().encode(
        alt.X('utchoursminutes(date_utc):O', title='hour of day'),
        alt.Y('utcmonthdate(date_utc):O', title='date'),
-       alt.Color('temp:Q', title='temperature (F)')
+       alt.Color('temperature:Q', title='temperature (F)')
    )
 
 This is somewhat less convenient than the default behavior for timezone-agnostic

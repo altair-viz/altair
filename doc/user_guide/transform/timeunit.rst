@@ -36,11 +36,11 @@ measurements in Seattle during the year 2010:
     import altair as alt
     from vega_datasets import data
 
-    temps = data.seattle_temps.url
+    temps = data.seattle_weather_hourly_normals.url
 
     alt.Chart(temps).mark_line().encode(
         x='date:T',
-        y='temp:Q'
+        y='temperature:Q'
     )
 
 The plot is too busy due to the amount of data points squeezed into the short
@@ -51,7 +51,7 @@ and plotting only the mean monthly temperature:
 
     alt.Chart(temps).mark_line().encode(
         x='month(date):T',
-        y='mean(temp):Q'
+        y='mean(temperature):Q'
     )
 
 Notice that by default timeUnit output is a continuous quantity; if you would
@@ -63,7 +63,7 @@ This can be useful when plotting a bar chart or other discrete chart type:
 
     alt.Chart(temps).mark_bar().encode(
         x='month(date):O',
-        y='mean(temp):Q'
+        y='mean(temperature):Q'
     )
 
 Multiple time units can be combined within a single plot to yield interesting
@@ -75,7 +75,7 @@ to give a profile of Seattle temperatures through the year:
     alt.Chart(temps).mark_rect().encode(
         alt.X('date(date):O', title='day'),
         alt.Y('month(date):O', title='month'),
-        color='max(temp):Q'
+        color='max(temperature):Q'
     ).properties(
         title="2010 Daily High Temperatures in Seattle (F)"
     )
@@ -91,7 +91,7 @@ method. For example:
 
     alt.Chart(temps).mark_line().encode(
         alt.X('month:T', axis=alt.Axis(format='%b')),
-        y='mean(temp):Q'
+        y='mean(temperature):Q'
     ).transform_timeunit(
         month='month(date)'
     )
