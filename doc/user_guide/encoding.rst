@@ -416,38 +416,7 @@ represents the mean of a third quantity, such as acceleration:
        color='average(Acceleration):Q'
    )
 
-Aggregation Functions
-^^^^^^^^^^^^^^^^^^^^^
-
-In addition to ``count`` and ``average``, there are a large number of available
-aggregation functions built into Altair; they are listed in the following table:
-
-=========  ===========================================================================  =====================================
-Aggregate  Description                                                                  Example
-=========  ===========================================================================  =====================================
-argmin     An input data object containing the minimum field value.                     N/A
-argmax     An input data object containing the maximum field value.                     :ref:`gallery_line_chart_with_custom_legend`
-average    The mean (average) field value. Identical to mean.                           :ref:`gallery_layer_line_color_rule`
-count      The total count of data objects in the group.                                :ref:`gallery_simple_heatmap`
-distinct   The count of distinct field values.                                          N/A
-max        The maximum field value.                                                     :ref:`gallery_boxplot`
-mean       The mean (average) field value.                                              :ref:`gallery_scatter_with_layered_histogram`
-median     The median field value                                                       :ref:`gallery_boxplot`
-min        The minimum field value.                                                     :ref:`gallery_boxplot`
-missing    The count of null or undefined field values.                                 N/A
-q1         The lower quartile boundary of values.                                       :ref:`gallery_boxplot`
-q3         The upper quartile boundary of values.                                       :ref:`gallery_boxplot`
-ci0        The lower boundary of the bootstrapped 95% confidence interval of the mean.  :ref:`gallery_sorted_error_bars_with_ci`
-ci1        The upper boundary of the bootstrapped 95% confidence interval of the mean.  :ref:`gallery_sorted_error_bars_with_ci`
-stderr     The standard error of the field values.                                      N/A
-stdev      The sample standard deviation of field values.                               N/A
-stdevp     The population standard deviation of field values.                           N/A
-sum        The sum of field values.                                                     :ref:`gallery_streamgraph`
-valid      The count of field values that are not null or undefined.                    N/A
-values     ??                                                                           N/A
-variance   The sample variance of field values.                                         N/A
-variancep  The population variance of field values.                                     N/A
-=========  ===========================================================================  =====================================
+For a full list of available aggregates, see :ref:`agg-func-table`.
 
 
 .. _shorthand-description:
@@ -458,7 +427,7 @@ Encoding Shorthands
 For convenience, Altair allows the specification of the variable name along
 with the aggregate and type within a simple shorthand string syntax.
 This makes use of the type shorthand codes listed in :ref:`encoding-data-types`
-as well as the aggregate names listed in :ref:`encoding-aggregates`.
+as well as the aggregate names listed in :ref:`agg-func-table`.
 The following table shows examples of the shorthand specification alongside
 the long-form equivalent:
 
@@ -622,7 +591,7 @@ x-axis, using the barley dataset:
     )
 
 The last two charts are the same because the default aggregation 
-(see :ref:`encoding-aggregates`) is ``mean``. To highlight the 
+(see :doc:`transform/aggregate`) is ``mean``. To highlight the 
 difference between sorting via channel and sorting via field consider the 
 following example where we don't aggregate the data:
 
