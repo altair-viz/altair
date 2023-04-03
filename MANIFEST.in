@@ -4,4 +4,5 @@ include LICENSE
 include CHANGES.md
 include requirements.txt
 include requirements_dev.txt
+include altair/py.typed
 recursive-include altair *.py *.json *.ipynb *.html
