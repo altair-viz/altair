@@ -56,29 +56,48 @@
     - in ``altair/__init__.py``
     - in ``doc/conf.py``
 
-13. add a new changelog entry for the unreleased version:
-
-    ```
-    Version 5.1.0 (unreleased)
-    --------------------------
-
-    Enhancements
-    ~~~~~~~~~~~~
-    Bug Fixes
-    ~~~~~~~~~
-    Backward-Incompatible Changes
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    ```
-
-14. Commit change and push to main:
+12. Commit change and push to main:
 
         git add . -u
         git commit -m "MAINT: bump version to 5.1.0dev"
         git push upstream main
 
-15. Double-check that a conda-forge pull request is generated from the updated
+13. Double-check that a conda-forge pull request is generated from the updated
     pip package by the conda-forge bot (may take up to ~an hour):
     https://github.com/conda-forge/altair-feedstock/pulls
 
-16. Copy changes.rst section into release notes within
-    https://github.com/altair-viz/altair/releases/, and publish the release.
+14. Publish a new release in https://github.com/altair-viz/altair/releases/
+
+**Temporary until we have released Version 5.3.0**. Here some draft release notes.
+
+Version 5.3.0 (unreleased month day, year)
+--------------------------
+- Update Vega-Lite from version 5.16.3 to version 5.17.0;
+  see `Vega-Lite Release Notes <https://github.com/vega/vega-lite/releases>`_.
+
+Enhancements
+~~~~~~~~~~~~
+- Add "jupyter" renderer which uses JupyterChart for rendering (#3283). See :ref:`renderers` for more information.
+- Add integration of VegaFusion and JupyterChart to support data transformations in the Python kernel for interactive charts (##3281). See :ref:`vegafusion-data-transformer` for more information.
+- Add ``embed_options`` argument to JupyterChart to allow customization of Vega Embed options (##3304)
+- Add offline support for JupyterChart and the new "jupyter" renderer. See :ref:`user-guide-jupyterchart-offline`
+  for more information.
+- Docs: Add :ref:`section on dashboards <display_dashboards>` which have support for Altair (#3299)
+- Support restrictive FIPS-compliant environment (#3291)
+- Support opening charts in the Vega editor with ``chart.open_editor()`` (#3358)
+- Simplify type-hints to improve the readability of the function signature and docstring (#3307)
+- Support installation of all optional dependencies via ``python -m pip install altair[all]`` (#3354)
+    - ``conda install altair-all`` will be added in `this conda feedstock PR <https://github.com/conda-forge/altair-feedstock/pull/53>`_)
+- Add privacy friendly web-analytics for the documentation (#3350)
+- Additional gallery examples and documentation clarifications (#3233, #3266, #3276, #3282, #3298, #3299, #3323, #3334, #3324, #3340, #3350, #3353, #3357, #3362, #3363) 
+
+Bug Fixes
+~~~~~~~~~
+- Fix error when embed_options are None (#3376)
+- Fix type hints for libraries such as Polars where Altair uses the dataframe interchange protocol (#3297)
+- Fix anywidget deprecation warning (#3364)
+
+Backward-Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Changed hash function from ``md5`` to a truncated ``sha256`` non-cryptograhic hash (#3291)
+
