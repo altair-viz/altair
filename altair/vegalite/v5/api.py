@@ -2677,30 +2677,17 @@ class TopLevelMixin(mixins.ConfigMethodMixin):
             http_server=http_server,
         )
 
-    def show(
-        self, embed_opt: Optional[dict] = None, open_browser: Optional[bool] = None
-    ) -> None:
-        """Show the chart in an external browser window.
+    def show(self) -> None:
+        """Display the chart using the active renderer"""
+        if renderers.active == "browser":
+            # Opens browser window as side-effect.
+            # We use a special case here so that IPython is not required
+            self._repr_mimebundle_()
+        else:
+            # Mime-bundle based renderer, requires running in an IPython session
+            from IPython.display import display
 
-        This requires a recent version of the altair_viewer package.
-
-        Parameters
-        ----------
-        embed_opt : dict (optional)
-            The Vega embed options that control the display of the chart.
-        open_browser : bool (optional)
-            Specify whether a browser window should be opened. If not specified,
-            a browser window will be opened only if the server is not already
-            connected to a browser.
-        """
-        try:
-            import altair_viewer
-        except ImportError as err:
-            raise ValueError(
-                "'show' method requires the altair_viewer package. "
-                "See http://github.com/altair-viz/altair_viewer"
-            ) from err
-        altair_viewer.show(self, embed_opt=embed_opt, open_browser=open_browser)
+            display(self)
 
     @utils.use_signature(core.Resolve)
     def _set_resolve(self, **kwargs):

@@ -55,6 +55,11 @@ The most used built-in renderers are:
   dependencies from the ``vl-convert-python`` package (rather than from an online CDN)
   so that an internet connection is not required.
 
+``alt.renderers.enable("browser")``
+  *(added in version 5.3):* Display charts in an external web browser. This renderer is
+  particularly useful when using Vega-Altair in a local non-Jupyter environment, such as
+  in `IPython`_ or `Spyder`_. See :ref:`display-browser` for more information.
+
 In addition, Altair includes the following renderers:
 
 - ``"default"``, ``"colab"``, ``"kaggle"``, ``"zeppelin"``: identical to ``"html"``
@@ -179,57 +184,83 @@ If you are using a dashboarding package that is not listed here, please `open an
 Working in environments without a JavaScript frontend
 -----------------------------------------------------   
 The Vega-Lite specifications produced by Altair can be produced in any Python
-environment, but to render these specifications currently requires a javascript
+environment, but to render these specifications currently requires a JavaScript
 engine. For this reason, Altair works most seamlessly with the browser-based
-environments mentioned above.
+environments mentioned above. Even so, Altair can be used effectively in non-browser
+based environments using the approaches described below.
 
-If you would like to render plots from another Python interface that does not
-have a built-in javascript engine, you'll need to somehow connect your charts
-to a second tool that can execute javascript.
+Static Image Renderers
+~~~~~~~~~~~~~~~~~~~~~~
+The ``"png"`` and ``"svg"`` renderers rely on the JavaScript engine embedded in
+the vl-convert optional dependency to generate static images from Vega-Lite chart
+specifications. These static images are then displayed in IPython-based environments
+using the Mime Renderer Extensions system. This approach may be used to display static
+versions of Altair charts inline in the `IPython QtConsole`_ and `Spyder`_, as well as
+in browser-based environments like JupyterLab.
 
-There are a few options available for this:
+The ``"svg"`` renderer is enabled like this::
 
-Altair Viewer
-~~~~~~~~~~~~~
-.. note::
-   
-   altair_viewer does not yet support Altair 5.
+    alt.renderers.enable("svg")
 
-For non-notebook IDEs, a useful companion is the `Altair Viewer`_ package,
-which provides an Altair renderer that works directly from any Python terminal.
-Start by installing the package::
 
-    $ pip install altair_viewer
+The ``"png"`` renderer is enabled like this::
 
-When enabled, this will serve charts via a local HTTP server and automatically open
-a browser window in which to view them, with subsequent charts displayed in the
-same window.
+    alt.renderers.enable("png")
 
-If you are using an IPython-compatible terminal ``altair_viewer`` can be enabled via
-Altair's standard renderer framework::
 
-    import altair as alt
-    alt.renderers.enable('altair_viewer')
+The ``"png"`` renderer supports the following keyword argument configuration options:
 
-If you prefer to manually trigger chart display, you can use the built-in :meth:`Chart.show`
-method to manually trigger chart display::
+- The ``scale_factor`` argument may be used to increase the chart size by the specified
+  scale factor (Default 1.0).
+- The ``ppi`` argument controls the pixels-per-inch resolution of the displayed image (Default 72).
 
-    import altair as alt
+Example usage::
 
-    # load a simple dataset as a pandas DataFrame
-    from vega_datasets import data
-    cars = data.cars()
+    alt.renderers.enable("png", scale_factor=2, ppi=144)
 
-    chart = alt.Chart(cars).mark_point().encode(
-        x='Horsepower',
-        y='Miles_per_Gallon',
-        color='Origin',
-    ).interactive()
 
-    chart.show()
+.. _display-browser:
 
-This command will block the Python interpreter until the browser window containing
-the chart is closed.
+Browser Renderer
+~~~~~~~~~~~~~~~~
+To support displaying charts with interactive features in non-browser based environments,
+the ``"browser"`` renderer automatically opens charts in browser tabs of a system web browser.
+
+The ``"browser"`` renderer is enabled like this::
+
+    alt.renderers.enable("browser")
+
+
+The ``"browser"`` renderer supports the following keyword argument configuration options:
+
+- The ``using`` argument may be used to specify which system web browser to use. This
+  may be set to a string to indicate the single browser that must be used (e.g. ``"safari"``),
+  or it may be set to a list of browser names where the first available browser is used. See the
+  documentation for the `webbrowser module`_ for the list of supported browser names. If not
+  specified, the system default browser is used.
+- The ``offline`` argument may be used to specify whether JavaScript dependencies should
+  be loaded from an online CDN or embedded alongside the chart specification. When ``offline``
+  is ``False`` (The default), JavaScript dependencies are loaded from an online CDN, and so
+  an internet connection is required. When ``offline`` is ``True``, JavaScript dependencies
+  are embedded alongside chart specification and so no internet connection is required. Setting
+  ``offline`` to ``True`` requires the optional ``vl-convert-python`` dependency.
+- The ``port`` argument may be used to configure the system port that the chart HTML is served
+  on. Defaults to a random open port.
+
+Limitations:
+
+- The ``"browser"`` renderer sets up a temporary web server that serves the chart exactly once,
+  then opens the designated browser pointing to this server's URL. This approach does not require
+  the creation of temporary HTML files on disk, and it's memory efficient as there are no long-lived
+  web server processes required. A limitation of this approach is that the chart will be lost if the
+  browser is refreshed, and it's not possible to copy the chart URL and paste it in another browser
+  tab.
+- When used in IPython-based environments, the ``"browser"`` renderer will automatically open the
+  chart in the browser when the chart is the final value of the cell or command. This behavior is not
+  available in the standard ``python`` REPL. In this case, the ``chart.show()`` method may be used to
+  manually invoke the active renderer and open the chart in the browser.
+- This renderer is not compatible with remote environments like Binder or Colab.
+
 
 Manual ``save()`` and display
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -678,3 +709,7 @@ see :ref:`display-general`.
 .. _Vega: https://vega.github.io/vega/
 .. _VSCode-Python: https://code.visualstudio.com/docs/python/python-tutorial
 .. _Zeppelin: https://zeppelin.apache.org/
+.. _IPython: https://ipython.org/
+.. _Spyder: https://www.spyder-ide.org/
+.. _IPython QtConsole: https://qtconsole.readthedocs.io/en/stable/
+.. _webbrowser module: https://docs.python.org/3/library/webbrowser.html#webbrowser.register

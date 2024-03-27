@@ -106,6 +106,31 @@ def jupyter_renderer(spec: dict, **metadata):
     )._repr_mimebundle_()  # type: ignore[attr-defined]
 
 
+def browser_renderer(
+    spec: dict, offline=False, using=None, port=0, **metadata
+) -> Dict[str, str]:
+    from altair.utils._show import open_html_in_browser
+
+    if offline:
+        metadata["template"] = "inline"
+    mimebundle = spec_to_mimebundle(
+        spec,
+        format="html",
+        mode="vega-lite",
+        vega_version=VEGA_VERSION,
+        vegaembed_version=VEGAEMBED_VERSION,
+        vegalite_version=VEGALITE_VERSION,
+        **metadata,
+    )
+
+    if isinstance(mimebundle, tuple):
+        mimebundle = mimebundle[0]
+
+    html = mimebundle["text/html"]
+    open_html_in_browser(html, using=using, port=port)
+    return {}
+
+
 html_renderer = HTMLRenderer(
     mode="vega-lite",
     template="universal",
@@ -126,6 +151,7 @@ renderers.register("json", json_renderer)
 renderers.register("png", png_renderer)
 renderers.register("svg", svg_renderer)
 renderers.register("jupyter", jupyter_renderer)
+renderers.register("browser", browser_renderer)
 renderers.enable("default")
 
 
