@@ -5,12 +5,16 @@ import hashlib
 import warnings
 from typing import Union, MutableMapping, Optional, Dict, Sequence, TYPE_CHECKING, List
 
-import pandas as pd
 from toolz import curried
 from typing import TypeVar
 
 from ._importers import import_pyarrow_interchange
-from .core import sanitize_dataframe, sanitize_arrow_table, DataFrameLike
+from .core import (
+    sanitize_dataframe,
+    sanitize_arrow_table,
+    DataFrameLike,
+    _is_pandas_dataframe,
+)
 from .core import sanitize_geo_interface
 from .deprecation import AltairDeprecationWarning
 from .plugin_registry import PluginRegistry
@@ -21,13 +25,14 @@ from typing import Protocol, TypedDict, Literal
 
 if TYPE_CHECKING:
     import pyarrow.lib
+    import pandas as pd
 
 
 class SupportsGeoInterface(Protocol):
     __geo_interface__: MutableMapping
 
 
-DataType = Union[dict, pd.DataFrame, SupportsGeoInterface, DataFrameLike]
+DataType = Union[dict, DataFrameLike, SupportsGeoInterface, "pd.DataFrame"]
 TDataType = TypeVar("TDataType", bound=DataType)
 
 VegaLiteDataDict = Dict[str, Union[str, dict, List[dict]]]
@@ -96,7 +101,7 @@ def limit_rows(data: TDataType, max_rows: Optional[int] = 5000) -> TDataType:
             values = data.__geo_interface__["features"]
         else:
             values = data.__geo_interface__
-    elif isinstance(data, pd.DataFrame):
+    elif _is_pandas_dataframe(data):
         values = data
     elif isinstance(data, dict):
         if "values" in data:
@@ -122,10 +127,10 @@ def limit_rows(data: TDataType, max_rows: Optional[int] = 5000) -> TDataType:
 @curried.curry
 def sample(
     data: DataType, n: Optional[int] = None, frac: Optional[float] = None
-) -> Optional[Union[pd.DataFrame, Dict[str, Sequence], "pyarrow.lib.Table"]]:
+) -> Optional[Union["pd.DataFrame", Dict[str, Sequence], "pyarrow.lib.Table"]]:
     """Reduce the size of the data model by sampling without replacement."""
     check_data_type(data)
-    if isinstance(data, pd.DataFrame):
+    if _is_pandas_dataframe(data):
         return data.sample(n=n, frac=frac)
     elif isinstance(data, dict):
         if "values" in data:
@@ -196,7 +201,7 @@ def to_json(
 
 @curried.curry
 def to_csv(
-    data: Union[dict, pd.DataFrame, DataFrameLike],
+    data: Union[dict, DataFrameLike, "pd.DataFrame"],
     prefix: str = "altair-data",
     extension: str = "csv",
     filename: str = "{prefix}-{hash}.{extension}",
@@ -216,13 +221,13 @@ def to_values(data: DataType) -> ToValuesReturnType:
     """Replace a DataFrame by a data model with values."""
     check_data_type(data)
     if hasattr(data, "__geo_interface__"):
-        if isinstance(data, pd.DataFrame):
+        if _is_pandas_dataframe(data):
             data = sanitize_dataframe(data)
         # Maybe the type could be further clarified here that it is
         # SupportGeoInterface and then the ignore statement is not needed?
         data_sanitized = sanitize_geo_interface(data.__geo_interface__)  # type: ignore[arg-type]
         return {"values": data_sanitized}
-    elif isinstance(data, pd.DataFrame):
+    elif _is_pandas_dataframe(data):
         data = sanitize_dataframe(data)
         return {"values": data.to_dict(orient="records")}
     elif isinstance(data, dict):
@@ -238,8 +243,10 @@ def to_values(data: DataType) -> ToValuesReturnType:
 
 
 def check_data_type(data: DataType) -> None:
-    if not isinstance(data, (dict, pd.DataFrame, DataFrameLike)) and not any(
-        hasattr(data, attr) for attr in ["__geo_interface__"]
+    if (
+        not isinstance(data, (dict, DataFrameLike))
+        and not _is_pandas_dataframe(data)
+        and not any(hasattr(data, attr) for attr in ["__geo_interface__"])
     ):
         raise TypeError(
             "Expected dict, DataFrame or a __geo_interface__ attribute, got: {}".format(
@@ -259,13 +266,13 @@ def _data_to_json_string(data: DataType) -> str:
     """Return a JSON string representation of the input data"""
     check_data_type(data)
     if hasattr(data, "__geo_interface__"):
-        if isinstance(data, pd.DataFrame):
+        if _is_pandas_dataframe(data):
             data = sanitize_dataframe(data)
         # Maybe the type could be further clarified here that it is
         # SupportGeoInterface and then the ignore statement is not needed?
         data = sanitize_geo_interface(data.__geo_interface__)  # type: ignore[arg-type]
         return json.dumps(data)
-    elif isinstance(data, pd.DataFrame):
+    elif _is_pandas_dataframe(data):
         data = sanitize_dataframe(data)
         return data.to_json(orient="records", double_precision=15)
     elif isinstance(data, dict):
@@ -281,7 +288,7 @@ def _data_to_json_string(data: DataType) -> str:
         )
 
 
-def _data_to_csv_string(data: Union[dict, pd.DataFrame, DataFrameLike]) -> str:
+def _data_to_csv_string(data: Union[dict, DataFrameLike, "pd.DataFrame"]) -> str:
     """return a CSV string representation of the input data"""
     check_data_type(data)
     if hasattr(data, "__geo_interface__"):
@@ -289,15 +296,17 @@ def _data_to_csv_string(data: Union[dict, pd.DataFrame, DataFrameLike]) -> str:
             "to_csv does not work with data that "
             "contains the __geo_interface__ attribute"
         )
-    elif isinstance(data, pd.DataFrame):
+    elif _is_pandas_dataframe(data):
         data = sanitize_dataframe(data)
         return data.to_csv(index=False)
     elif isinstance(data, dict):
+        from altair.utils._importers import import_pandas
+
         if "values" not in data:
             raise KeyError("values expected in data dict, but not present")
+        pd = import_pandas()
         return pd.DataFrame.from_dict(data["values"]).to_csv(index=False)
     elif isinstance(data, DataFrameLike):
-        # experimental interchange dataframe support
         import pyarrow as pa
         import pyarrow.csv as pa_csv
 

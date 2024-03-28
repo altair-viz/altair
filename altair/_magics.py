@@ -9,7 +9,7 @@ import warnings
 
 import IPython
 from IPython.core import magic_arguments
-import pandas as pd
+from altair.utils.core import DataFrameLike, _is_pandas_dataframe
 from toolz import curried
 
 from altair.vegalite import v5 as vegalite_v5
@@ -40,10 +40,12 @@ def _prepare_data(data, data_transformers):
     """Convert input data to data for use within schema"""
     if data is None or isinstance(data, dict):
         return data
-    elif isinstance(data, pd.DataFrame):
+    elif isinstance(data, DataFrameLike):
         return curried.pipe(data, data_transformers.get())
     elif isinstance(data, str):
         return {"url": data}
+    elif _is_pandas_dataframe(data):
+        return curried.pipe(data, data_transformers.get())
     else:
         warnings.warn("data of type {} not recognized".format(type(data)), stacklevel=1)
         return data

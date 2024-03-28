@@ -25,9 +25,7 @@ from typing import (
 from types import ModuleType
 
 import jsonschema
-import pandas as pd
 import numpy as np
-from pandas.api.types import infer_dtype
 
 from altair.utils.schemapi import SchemaBase
 from altair.utils._dfi_types import Column, DtypeKind, DataFrame as DfiDataFrame
@@ -40,6 +38,7 @@ else:
 from typing import Literal, Protocol, TYPE_CHECKING, runtime_checkable
 
 if TYPE_CHECKING:
+    import pandas as pd
     from pandas.core.interchange.dataframe_protocol import Column as PandasColumn
 
 V = TypeVar("V")
@@ -51,6 +50,11 @@ class DataFrameLike(Protocol):
     def __dataframe__(
         self, nan_as_null: bool = False, allow_copy: bool = True
     ) -> DfiDataFrame: ...
+
+
+def _is_pandas_dataframe(obj: Any) -> bool:
+    """Check if the object is an instance of a pandas DataFrame."""
+    return all(attr in dir(obj) for attr in ["iloc", "columns", "index"])
 
 
 TYPECODE_MAP = {
@@ -208,7 +212,10 @@ def infer_vegalite_type(
     ----------
     data: object
     """
-    typ = infer_dtype(data, skipna=False)
+    from altair.utils._importers import import_pandas
+
+    pd = import_pandas()
+    typ = pd.api.types.infer_dtype(data, skipna=False)
 
     if typ in [
         "floating",
@@ -299,7 +306,7 @@ def numpy_is_subtype(dtype: Any, subtype: Any) -> bool:
         return False
 
 
-def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:  # noqa: C901
+def sanitize_dataframe(df: "pd.DataFrame") -> "pd.DataFrame":  # noqa: C901
     """Sanitize a DataFrame to prepare it for serialization.
 
     * Make a copy
@@ -316,6 +323,9 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:  # noqa: C901
     * convert dedicated string column to objects and replace NaN with None
     * Raise a ValueError for TimeDelta dtypes
     """
+    from altair.utils._importers import import_pandas
+
+    pd = import_pandas()
     df = df.copy()
 
     if isinstance(df.columns, pd.RangeIndex):
@@ -448,7 +458,7 @@ def sanitize_arrow_table(pa_table):
 
 def parse_shorthand(
     shorthand: Union[Dict[str, Any], str],
-    data: Optional[Union[pd.DataFrame, DataFrameLike]] = None,
+    data: Optional[Union[DataFrameLike, "pd.DataFrame"]] = None,
     parse_aggregates: bool = True,
     parse_window_ops: bool = False,
     parse_timeunits: bool = True,
@@ -601,7 +611,7 @@ def parse_shorthand(
                         # Fall back to pandas-based inference.
                         # Note: The AttributeError catch is a workaround for
                         # https://github.com/pandas-dev/pandas/issues/55332
-                        if isinstance(data, pd.DataFrame):
+                        if _is_pandas_dataframe(data):
                             attrs["type"] = infer_vegalite_type(data[unescaped_field])
                         else:
                             raise
@@ -609,7 +619,7 @@ def parse_shorthand(
                     if isinstance(attrs["type"], tuple):
                         attrs["sort"] = attrs["type"][1]
                         attrs["type"] = attrs["type"][0]
-        elif isinstance(data, pd.DataFrame):
+        elif _is_pandas_dataframe(data):
             # Fallback if pyarrow is not installed or if pandas is older than 1.5
             #
             # Remove escape sequences so that types can be inferred for columns with special characters
