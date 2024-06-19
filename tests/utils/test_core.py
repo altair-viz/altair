@@ -4,11 +4,11 @@ from importlib.metadata import version as importlib_version
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import infer_dtype
 import pytest
 
 import altair as alt
 from altair.utils.core import parse_shorthand, update_nested, infer_encoding_types
-from altair.utils.core import infer_dtype
 
 json_schema_specification = alt.load_schema()["$schema"]
 json_schema_dict_str = f'{{"$schema": "{json_schema_specification}"}}'

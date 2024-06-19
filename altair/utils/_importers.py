@@ -95,3 +95,27 @@ def pyarrow_available() -> bool:
         return True
     except (ImportError, RuntimeError):
         return False
+
+
+def import_pandas() -> ModuleType:
+    min_version = "0.25"
+    try:
+        version = importlib_version("pandas")
+        if Version(version) < Version(min_version):
+            raise RuntimeError(
+                f"The pandas package must be version {min_version} or greater. "
+                f"Found version {version}"
+            )
+        import pandas as pd
+
+        return pd
+    except ImportError as err:
+        raise ImportError(
+            f"Serialization of the DataFrame requires\n"
+            f"version {min_version} or greater of the 'pandas' package. \n"
+            f"This can be installed with pip using:\n"
+            f'   pip install "pandas>={min_version}"\n'
+            "or conda:\n"
+            f'   conda install -c conda-forge "pandas>={min_version}"\n\n'
+            f"ImportError: {err.args[0]}"
+        ) from err

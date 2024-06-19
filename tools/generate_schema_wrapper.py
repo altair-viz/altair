@@ -139,7 +139,7 @@ class FieldChannelMixin:
                 # We still parse it out of the shorthand, but drop it here.
                 parsed.pop("type", None)
             elif not (type_in_shorthand or type_defined_explicitly):
-                if isinstance(context.get("data", None), pd.DataFrame):
+                if isinstance(context.get("data", None), DataFrameLike):
                     raise ValueError(
                         'Unable to determine data type for the field "{}";'
                         " verify that the field name is not misspelled."
@@ -561,7 +561,7 @@ def generate_vegalite_channel_wrappers(
         imports = [
             "import sys",
             "from . import core",
-            "import pandas as pd",
+            "from altair.utils.core import DataFrameLike",
             "from altair.utils.schemapi import Undefined, UndefinedType, with_property_setters",
             "from altair.utils import parse_shorthand",
             "from typing import Any, overload, Sequence, List, Literal, Union, Optional",

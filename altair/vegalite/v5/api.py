@@ -4,7 +4,6 @@ import hashlib
 import io
 import json
 import jsonschema
-import pandas as pd
 from toolz.curried import pipe as _pipe
 import itertools
 import sys
@@ -28,7 +27,7 @@ from ...utils._vegafusion_data import (
     using_vegafusion as _using_vegafusion,
     compile_with_vegafusion as _compile_with_vegafusion,
 )
-from ...utils.core import DataFrameLike
+from ...utils.core import DataFrameLike, _is_pandas_dataframe
 from ...utils.data import DataType
 from ...utils.deprecation import AltairDeprecationWarning
 
@@ -113,15 +112,15 @@ def _prepare_data(data, context=None):
     if data is Undefined:
         return data
 
-    # convert dataframes  or objects with __geo_interface__ to dict
-    elif isinstance(data, pd.DataFrame) or hasattr(data, "__geo_interface__"):
+    # convert dataframes or objects with __geo_interface__ to dict
+    elif isinstance(data, DataFrameLike) or hasattr(data, "__geo_interface__"):
         data = _pipe(data, data_transformers.get())
 
     # convert string input to a URLData
     elif isinstance(data, str):
         data = core.UrlData(data)
 
-    elif isinstance(data, DataFrameLike):
+    elif _is_pandas_dataframe(data):
         data = _pipe(data, data_transformers.get())
 
     # consolidate inline data to top-level datasets
