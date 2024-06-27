@@ -950,9 +950,15 @@ class SchemaBase:
                     if kwds.get(k, Undefined) is Undefined
                 }
             )
-            kwds = {
-                k: v for k, v in kwds.items() if k not in list(ignore) + ["shorthand"]
-            }
+            for k, v in list(kwds.items()):
+                if k not in (list(ignore) + ["shorthand"]):
+                    if isinstance(v, (pd.Series, pd.Index)):
+                        kwds[k] = v.to_list()
+                    elif isinstance(v, range):
+                        kwds[k] = list(v)
+                else:
+                    kwds.pop(k, None)
+
             if "mark" in kwds and isinstance(kwds["mark"], str):
                 kwds["mark"] = {"type": kwds["mark"]}
             result = _todict(
