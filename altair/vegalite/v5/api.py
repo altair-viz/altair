@@ -3033,9 +3033,15 @@ class Chart(
         return self.add_params(*params)
 
     def interactive(
-        self, name: Optional[str] = None, bind_x: bool = True, bind_y: bool = True
+        self,
+        name: Optional[str] = None,
+        bind_x: bool = True,
+        bind_y: bool = True,
+        tooltip: bool = True,
+        legend: Union[bool, list] = True,
+        legend_opacity: tuple = (0.7, 0.1),
     ) -> Self:
-        """Make chart axes scales interactive
+        """Add common interactive elements to the chart
 
         Parameters
         ----------
@@ -3043,9 +3049,17 @@ class Chart(
             The parameter name to use for the axes scales. This name should be
             unique among all parameters within the chart.
         bind_x : boolean, default True
-            If true, then bind the interactive scales to the x-axis
+            Bind the interactive scales to the x-axis
         bind_y : boolean, default True
-            If true, then bind the interactive scales to the y-axis
+            Bind the interactive scales to the y-axis
+        tooltip : boolean, default True,
+            Add a tooltip containing the encodings used in the chart
+        legend : boolean or list, default True
+            Make the legend clickable and control the opacity of the marks.
+            Can be set to a list indicating which encodings the legend
+            interactivity should include.
+        legend_opacity : tuple, default (0.7, 0.1)
+            The default opacity values for the clicked and unclicked marks
 
         Returns
         -------
@@ -3058,7 +3072,57 @@ class Chart(
             encodings.append("x")
         if bind_y:
             encodings.append("y")
-        return self.add_params(selection_interval(bind="scales", encodings=encodings))
+        interactive_chart = self.add_params(
+            selection_interval(bind="scales", encodings=encodings)
+        ).copy()
+        # We can't simply use configure_mark since configure methods
+        # are not allowed in layered specs
+        if tooltip:
+            if isinstance(interactive_chart.mark, str):
+                interactive_chart.mark = {
+                    "type": interactive_chart.mark,
+                    "tooltip": tooltip,
+                }
+            else:
+                interactive_chart.mark.tooltip = tooltip
+        if legend:
+            if not isinstance(legend, list):
+                # Set the legend to commonly used encodings by default
+                legend = [
+                    "angle",
+                    "radius",
+                    "color",
+                    "fill",
+                    "shape",
+                    "size",
+                    "stroke",
+                ]
+                # Detect common legend encodings used in the spec
+                # legend = [
+                #     enc
+                #     for enc in interactive_chart.encoding.to_dict(validate=False).keys()
+                #     if enc
+                #     in [
+                #         "angle",
+                #         "radius",
+                #         "color",
+                #         "fill",
+                #         "shape",
+                #         "size",
+                #         "stroke",
+                #     ]
+                # ]
+            legend_selection = selection_point(bind="legend", encodings=legend)
+            interactive_chart = interactive_chart.add_params(
+                legend_selection,
+            ).encode(
+                opacity=condition(
+                    legend_selection,
+                    value(legend_opacity[0]),
+                    value(legend_opacity[1]),
+                )
+            )
+        return interactive_chart
 
 
 def _check_if_valid_subspec(spec: Union[dict, core.SchemaBase], classname: str) -> None:
