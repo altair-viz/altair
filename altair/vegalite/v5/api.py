@@ -7,7 +7,7 @@ import json
 import jsonschema
 import itertools
 from typing import Union, cast, Any, Iterable, Literal, IO, TYPE_CHECKING
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, deprecated
 import typing
 
 from .schema import core, channels, mixins, Undefined, SCHEMA_URL
@@ -263,7 +263,7 @@ class Parameter(_expr_core.OperatorMixin):
         self.param_type = param_type
 
     @utils.deprecation.deprecated(
-        message="'ref' is deprecated. No need to call '.ref()' anymore."
+        "No need to call '.ref()' anymore.", version="5.0.0", alternative="to_dict"
     )
     def ref(self) -> dict:
         "'ref' is deprecated. No need to call '.ref()' anymore."
@@ -533,9 +533,12 @@ def _selection(
     return param(select=select, **param_kwds)
 
 
-@utils.deprecation.deprecated(
-    message="""'selection' is deprecated.
-   Use 'selection_point()' or 'selection_interval()' instead; these functions also include more helpful docstrings."""
+@deprecated(
+    utils.deprecation.msg(
+        version="5.0.0",
+        alternative="'selection_point()' or 'selection_interval()'",
+        message="These functions also include more helpful docstrings.",
+    )
 )
 def selection(
     type: Optional[Literal["interval", "point"]] = Undefined, **kwds
@@ -790,19 +793,13 @@ def selection_point(
     )
 
 
-@utils.deprecation.deprecated(
-    message="'selection_multi' is deprecated.  Use 'selection_point'"
-)
-@utils.use_signature(core.PointSelectionConfig)
+@utils.deprecation.deprecated("", version="5.0.0", alternative="selection_point")
 def selection_multi(**kwargs):
     """'selection_multi' is deprecated.  Use 'selection_point'"""
     return _selection(type="point", **kwargs)
 
 
-@utils.deprecation.deprecated(
-    message="'selection_single' is deprecated.  Use 'selection_point'"
-)
-@utils.use_signature(core.PointSelectionConfig)
+@utils.deprecation.deprecate(version="5.0.0", alternative="selection_point")
 def selection_single(**kwargs):
     """'selection_single' is deprecated.  Use 'selection_point'"""
     return _selection(type="point", **kwargs)
@@ -2659,7 +2656,7 @@ class TopLevelMixin(mixins.ConfigMethodMixin):
         else:
             display(self)
 
-    @utils.deprecation.deprecated(message="'serve' is deprecated. Use 'show' instead.")
+    @utils.deprecation.deprecated("", version="4.1.0", alternative="show")
     def serve(
         self,
         ip="127.0.0.1",
@@ -3033,9 +3030,7 @@ class Chart(
             copy.params.append(s.param)
         return copy
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *params) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*params)
@@ -3249,9 +3244,7 @@ class RepeatChart(TopLevelMixin, core.TopLevelRepeatSpec):
         copy.spec = copy.spec.add_params(*params)
         return copy.copy()
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *selections) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*selections)
@@ -3366,9 +3359,7 @@ class ConcatChart(TopLevelMixin, core.TopLevelConcatSpec):
         copy.concat = [chart.add_params(*params) for chart in copy.concat]
         return copy
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *selections) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*selections)
@@ -3463,9 +3454,7 @@ class HConcatChart(TopLevelMixin, core.TopLevelHConcatSpec):
         copy.hconcat = [chart.add_params(*params) for chart in copy.hconcat]
         return copy
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *selections) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*selections)
@@ -3562,9 +3551,7 @@ class VConcatChart(TopLevelMixin, core.TopLevelVConcatSpec):
         copy.vconcat = [chart.add_params(*params) for chart in copy.vconcat]
         return copy
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *selections) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*selections)
@@ -3681,9 +3668,7 @@ class LayerChart(TopLevelMixin, _EncodingMixin, core.TopLevelLayerSpec):
         copy.layer[0] = copy.layer[0].add_params(*params)
         return copy.copy()
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *selections) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*selections)
@@ -3769,9 +3754,7 @@ class FacetChart(TopLevelMixin, core.TopLevelFacetSpec):
         copy.spec = copy.spec.add_params(*params)
         return copy.copy()
 
-    @utils.deprecation.deprecated(
-        message="'add_selection' is deprecated. Use 'add_params' instead."
-    )
+    @utils.deprecation.deprecated("", version="5.0.0", alternative="add_params")
     def add_selection(self, *selections) -> Self:
         """'add_selection' is deprecated. Use 'add_params' instead."""
         return self.add_params(*selections)

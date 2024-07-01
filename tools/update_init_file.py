@@ -38,6 +38,7 @@ _TYPING_CONSTRUCTS = {
     Sequence,
     IO,
     annotations,
+    te.deprecated,
 }
 
 
@@ -112,6 +113,7 @@ def _is_relevant(attr: Any, name: str, /) -> bool:
         or attr is TYPE_CHECKING
         or (_is_hashable(attr) and attr in _TYPING_CONSTRUCTS)
         or name in {"pd", "jsonschema"}
+        or getattr_static(attr, "__deprecated__", False)
     ):
         return False
     elif ismodule(attr):
