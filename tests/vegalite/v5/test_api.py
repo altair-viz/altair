@@ -1071,7 +1071,7 @@ def test_validate_dataset():
 
 def test_polars_with_pandas_nor_pyarrow(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delitem(sys.modules, "pandas")
-    monkeypatch.delitem(sys.modules, "pyarrow")
+    monkeypatch.delitem(sys.modules, "pyarrow", raising=False)
 
     df = pl.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     _ = alt.Chart(df).mark_line().encode(x="a", y="b").to_json()
