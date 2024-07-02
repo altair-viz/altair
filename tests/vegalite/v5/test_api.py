@@ -1068,17 +1068,15 @@ def test_validate_dataset():
 
     assert jsn
 
+
 def test_polars_with_pandas_nor_pyarrow(monkeypatch: pytest.MonkeyPatch):
-    class MockPandas:
-        def __getattr__(self, attr):
-            raise NotImplementedError()
-    # Like this accessing any pandas attribute (e.g. pd.DataFrame) will raise
-    monkeypatch.delitem(sys.modules, 'pandas')
-    monkeypatch.delitem(sys.modules, 'pyarrow')
-    
-    df = pl.DataFrame({'a': [1,2,3], 'b': [4,5,6]})
-    _ = alt.Chart(df).mark_line().encode(x='a', y='b').to_json()
+    monkeypatch.delitem(sys.modules, "pandas")
+    monkeypatch.delitem(sys.modules, "pyarrow")
+
+    df = pl.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    _ = alt.Chart(df).mark_line().encode(x="a", y="b").to_json()
     # Check pandas and PyArrow weren't imported anywhere along the way,
-    # and so the function can work without them installed.
-    assert 'pandas' not in sys.modules
-    assert 'pyarrow' not in sys.modules
+    # confirming that the plot above would work without pandas no PyArrow
+    # installed.
+    assert "pandas" not in sys.modules
+    assert "pyarrow" not in sys.modules
