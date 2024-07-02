@@ -42,6 +42,7 @@ else:
 if TYPE_CHECKING:
     from types import ModuleType
     import typing as t
+    from altair.vegalite.v5.schema._typing import StandardType_T as InferredVegaLiteType
     from altair.utils._dfi_types import DataFrame as DfiDataFrame
     from altair.utils.data import DataType
     from narwhals.typing import IntoExpr
@@ -197,9 +198,6 @@ TIMEUNITS = [
     "utcminutesseconds",
     "utcsecondsmilliseconds",
 ]
-
-
-InferredVegaLiteType = Literal["ordinal", "nominal", "quantitative", "temporal"]
 
 
 def infer_vegalite_type_for_pandas(
@@ -520,6 +518,7 @@ def parse_shorthand(
 
     Examples
     --------
+    >>> import pandas as pd
     >>> data = pd.DataFrame({'foo': ['A', 'B', 'A', 'B'],
     ...                      'bar': [1, 2, 3, 4]})
 
