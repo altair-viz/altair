@@ -277,8 +277,6 @@ select = [
     "PLC0208",
     # manual-from-import
     "PLR0402",
-    # repeated-isinstance-calls
-    "PLR1701",
     # useless-return
     "PLR1711",
     # repeated-equality-comparison

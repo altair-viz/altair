@@ -670,29 +670,32 @@ def infer_vegalite_type_for_narwhals(
         raise ValueError(msg)
 
 
-def use_signature(Obj: Callable[P, Any]):  # -> Callable[..., Callable[P, V]]:
-    """Apply call signature and documentation of Obj to the decorated method"""
+def use_signature(obj: Callable[P, Any]):  # -> Callable[..., Callable[P, V]]:
+    """Apply call signature and documentation of `obj` to the decorated method"""
 
-    def decorate(f: Callable[..., V]) -> Callable[P, V]:
-        # call-signature of f is exposed via __wrapped__.
-        # we want it to mimic Obj.__init__
-        f.__wrapped__ = Obj.__init__  # type: ignore
-        f._uses_signature = Obj  # type: ignore
+    def decorate(func: Callable[..., V]) -> Callable[P, V]:
+        # call-signature of func is exposed via __wrapped__.
+        # we want it to mimic obj.__init__
 
-        # Supplement the docstring of f with information from Obj
-        if Obj.__doc__:
+        # error: Accessing "__init__" on an instance is unsound,
+        # since instance.__init__ could be from an incompatible subclass  [misc]
+        wrapped = (
+            obj.__init__ if (isinstance(obj, type) and issubclass(obj, object)) else obj  # type: ignore [misc]
+        )
+        func.__wrapped__ = wrapped  # type: ignore[attr-defined]
+        func._uses_signature = obj  # type: ignore[attr-defined]
+
+        # Supplement the docstring of func with information from obj
+        if doc_in := obj.__doc__:
+            doc_lines = doc_in.splitlines(keepends=True)[1:]
             # Patch in a reference to the class this docstring is copied from,
             # to generate a hyperlink.
-            doclines = Obj.__doc__.splitlines()
-            doclines[0] = f"Refer to :class:`{Obj.__name__}`"
-
-            if f.__doc__:
-                doc = f.__doc__ + "\n".join(doclines[1:])
-            else:
-                doc = "\n".join(doclines)
-            f.__doc__ = doc
-
-        return f
+            line_1 = f"{func.__doc__ or f'Refer to :class:`{obj.__name__}`'}\n"
+            func.__doc__ = "".join((line_1, *doc_lines))
+            return func
+        else:
+            msg = f"Found no doc for {obj!r}"
+            raise AttributeError(msg)
 
     return decorate
 
