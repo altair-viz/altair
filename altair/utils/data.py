@@ -57,12 +57,13 @@ DataType: TypeAlias = Union[
 ]
 
 TDataType = TypeVar("TDataType", bound=DataType)
+TIntoDataFrame = TypeVar("TIntoDataFrame", bound="IntoDataFrame")
 
 VegaLiteDataDict: TypeAlias = Dict[
     str, Union[str, Dict[Any, Any], List[Dict[Any, Any]]]
 ]
 ToValuesReturnType: TypeAlias = Dict[str, Union[Dict[Any, Any], List[Dict[Any, Any]]]]
-SampleReturnType = Optional[Union["pd.DataFrame", Dict[str, Sequence], "pa.lib.Table"]]
+SampleReturnType = Optional[Union["IntoDataFrame", Dict[str, Sequence]]]
 
 
 def is_data_type(obj: Any) -> TypeIs[DataType]:
@@ -170,6 +171,10 @@ def limit_rows(
 def sample(
     data: None = ..., n: int | None = ..., frac: float | None = ...
 ) -> partial: ...
+@overload
+def sample(
+    data: TIntoDataFrame, n: int | None = ..., frac: float | None = ...
+) -> TIntoDataFrame: ...
 @overload
 def sample(
     data: DataType, n: int | None = ..., frac: float | None = ...
