@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, overload, Callable
 
-from ..utils.core import sanitize_dataframe
+from ..utils.core import sanitize_pandas_dataframe
 from ..utils.data import (
     MaxRowsError,
     limit_rows,
@@ -58,7 +58,7 @@ __all__ = (
     "default_data_transformer",
     "limit_rows",
     "sample",
-    "sanitize_dataframe",
+    "sanitize_pandas_dataframe",
     "to_csv",
     "to_json",
     "to_values",

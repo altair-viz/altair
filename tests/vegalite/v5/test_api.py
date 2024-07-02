@@ -1,6 +1,7 @@
 """Unit tests for altair API"""
 
 import io
+import sys
 import json
 import operator
 import os
@@ -10,6 +11,7 @@ import tempfile
 import jsonschema
 import pytest
 import pandas as pd
+import polars as pl
 
 import altair.vegalite.v5 as alt
 
@@ -1065,3 +1067,16 @@ def test_validate_dataset():
     jsn = chart.to_json()
 
     assert jsn
+
+
+def test_polars_with_pandas_nor_pyarrow(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delitem(sys.modules, "pandas")
+    monkeypatch.delitem(sys.modules, "pyarrow", raising=False)
+
+    df = pl.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    _ = alt.Chart(df).mark_line().encode(x="a", y="b").to_json()
+    # Check pandas and PyArrow weren't imported anywhere along the way,
+    # confirming that the plot above would work without pandas no PyArrow
+    # installed.
+    assert "pandas" not in sys.modules
+    assert "pyarrow" not in sys.modules

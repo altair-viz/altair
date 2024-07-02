@@ -24,7 +24,7 @@ from altair.vegalite.data import default_data_transformer
 
 
 if TYPE_CHECKING:
-    import pandas as pd
+    from narwhals.typing import IntoDataFrame
     from vegafusion.runtime import ChartState  # type: ignore
 
 # Temporary storage for dataframes that have been extracted
@@ -60,7 +60,7 @@ def vegafusion_data_transformer(
 
 @overload
 def vegafusion_data_transformer(
-    data: dict | pd.DataFrame | SupportsGeoInterface, max_rows: int = ...
+    data: dict | IntoDataFrame | SupportsGeoInterface, max_rows: int = ...
 ) -> _VegaFusionReturnType: ...
 
 

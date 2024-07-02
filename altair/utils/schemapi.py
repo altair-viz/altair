@@ -30,7 +30,6 @@ import jsonschema
 import jsonschema.exceptions
 import jsonschema.validators
 import numpy as np
-import pandas as pd
 from packaging.version import Version
 
 # This leads to circular imports with the vegalite module. Currently, this works
@@ -38,9 +37,10 @@ from packaging.version import Version
 # not yet be fully instantiated in case your code is being executed during import time
 from altair import vegalite
 
+from narwhals.dependencies import get_pandas
+
 if TYPE_CHECKING:
     import sys
-
     from referencing import Registry
 
     from altair import ChartType
@@ -489,7 +489,9 @@ def _todict(obj: Any, context: dict[str, Any] | None) -> Any:
         return obj.to_dict()
     elif isinstance(obj, np.number):
         return float(obj)
-    elif isinstance(obj, (pd.Timestamp, np.datetime64)):
+    elif isinstance(obj, np.datetime64):
+        return str(obj)
+    elif (pd := get_pandas()) is not None and isinstance(obj, pd.Timestamp):
         return pd.Timestamp(obj).isoformat()
     else:
         return obj

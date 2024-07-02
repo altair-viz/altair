@@ -3,11 +3,16 @@ import json
 import sys
 import warnings
 
+import narwhals as nw
 import numpy as np
 import pandas as pd
 import pytest
 
-from altair.utils import infer_vegalite_type, sanitize_dataframe, sanitize_arrow_table
+from altair.utils import (
+    infer_vegalite_type_for_pandas,
+    sanitize_pandas_dataframe,
+    sanitize_narwhals_dataframe,
+)
 
 try:
     import pyarrow as pa
@@ -17,7 +22,7 @@ except ImportError:
 
 def test_infer_vegalite_type():
     def _check(arr, typ):
-        assert infer_vegalite_type(arr) == typ
+        assert infer_vegalite_type_for_pandas(arr) == typ
 
     _check(np.arange(5, dtype=float), "quantitative")
     _check(np.arange(5, dtype=int), "quantitative")
@@ -64,7 +69,7 @@ def test_sanitize_dataframe():
 
     # JSON serialize. This will fail on non-sanitized dataframes
     print(df[["s", "c2"]])
-    df_clean = sanitize_dataframe(df)
+    df_clean = sanitize_pandas_dataframe(df)
     print(df_clean[["s", "c2"]])
     print(df_clean[["s", "c2"]].to_dict())
     s = json.dumps(df_clean.to_dict(orient="records"))
@@ -107,7 +112,7 @@ def test_sanitize_dataframe_arrow_columns():
         }
     )
     df_arrow = pa.Table.from_pandas(df).to_pandas(types_mapper=pd.ArrowDtype)
-    df_clean = sanitize_dataframe(df_arrow)
+    df_clean = sanitize_pandas_dataframe(df_arrow)
     records = df_clean.to_dict(orient="records")
     assert records[0] == {
         "s": "a",
@@ -157,15 +162,15 @@ def test_sanitize_pyarrow_table_columns() -> None:
             ]
         ),
     )
-    sanitized = sanitize_arrow_table(pa_table)
-    values = sanitized.to_pylist()
+    sanitized = sanitize_narwhals_dataframe(nw.from_native(pa_table, eager_only=True))
+    values = sanitized.rows(named=True)
 
     assert values[0] == {
         "s": "a",
         "f": 0.0,
         "i": 0,
         "b": True,
-        "d": "2012-01-01T00:00:00",
+        "d": "2012-01-01",
         "c": "a",
         "p": "2012-01-01T00:00:00.000000000",
     }
@@ -178,26 +183,26 @@ def test_sanitize_dataframe_colnames():
     df = pd.DataFrame(np.arange(12).reshape(4, 3))
 
     # Test that RangeIndex is converted to strings
-    df = sanitize_dataframe(df)
+    df = sanitize_pandas_dataframe(df)
     assert [isinstance(col, str) for col in df.columns]
 
     # Test that non-string columns result in an error
     df.columns = [4, "foo", "bar"]
     with pytest.raises(ValueError) as err:  # noqa: PT011
-        sanitize_dataframe(df)
+        sanitize_pandas_dataframe(df)
     assert str(err.value).startswith("Dataframe contains invalid column name: 4.")
 
 
 def test_sanitize_dataframe_timedelta():
     df = pd.DataFrame({"r": pd.timedelta_range(start="1 day", periods=4)})
     with pytest.raises(ValueError) as err:  # noqa: PT011
-        sanitize_dataframe(df)
+        sanitize_pandas_dataframe(df)
     assert str(err.value).startswith('Field "r" has type "timedelta')
 
 
 def test_sanitize_dataframe_infs():
     df = pd.DataFrame({"x": [0, 1, 2, np.inf, -np.inf, np.nan]})
-    df_clean = sanitize_dataframe(df)
+    df_clean = sanitize_pandas_dataframe(df)
     assert list(df_clean.dtypes) == [object]
     assert list(df_clean["x"]) == [0, 1, 2, None, None, None]
 
@@ -218,7 +223,7 @@ def test_sanitize_nullable_integers():
         }
     )
 
-    df_clean = sanitize_dataframe(df)
+    df_clean = sanitize_pandas_dataframe(df)
     assert {col.dtype.name for _, col in df_clean.items()} == {"object"}
 
     result_python = {col_name: list(col) for col_name, col in df_clean.items()}
@@ -246,7 +251,7 @@ def test_sanitize_string_dtype():
         }
     )
 
-    df_clean = sanitize_dataframe(df)
+    df_clean = sanitize_pandas_dataframe(df)
     assert {col.dtype.name for _, col in df_clean.items()} == {"object"}
 
     result_python = {col_name: list(col) for col_name, col in df_clean.items()}
@@ -271,7 +276,7 @@ def test_sanitize_boolean_dtype():
         }
     )
 
-    df_clean = sanitize_dataframe(df)
+    df_clean = sanitize_pandas_dataframe(df)
     assert {col.dtype.name for _, col in df_clean.items()} == {"object"}
 
     result_python = {col_name: list(col) for col_name, col in df_clean.items()}

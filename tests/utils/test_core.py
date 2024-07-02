@@ -8,7 +8,7 @@ import pytest
 
 import altair as alt
 from altair.utils.core import parse_shorthand, update_nested, infer_encoding_types
-from altair.utils.core import infer_dtype
+from pandas.api.types import infer_dtype
 
 json_schema_specification = alt.load_schema()["$schema"]
 json_schema_dict_str = f'{{"$schema": "{json_schema_specification}"}}'

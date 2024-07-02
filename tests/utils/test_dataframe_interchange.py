@@ -59,4 +59,7 @@ def test_duration_raises():
 
     # Check that exception mentions the duration[ns] type,
     # which is what the pandas timedelta is converted into
-    assert "duration[ns]" in e.value.args[0]
+    assert (
+        'Field "timedelta" has type "Duration" which is not supported by Altair'
+        in e.value.args[0]
+    )

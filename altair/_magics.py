@@ -9,7 +9,7 @@ import warnings
 
 import IPython
 from IPython.core import magic_arguments
-import pandas as pd
+from narwhals.dependencies import is_pandas_dataframe as _is_pandas_dataframe
 
 from altair.vegalite import v5 as vegalite_v5
 
@@ -39,7 +39,7 @@ def _prepare_data(data, data_transformers):
     """Convert input data to data for use within schema"""
     if data is None or isinstance(data, dict):
         return data
-    elif isinstance(data, pd.DataFrame):
+    elif _is_pandas_dataframe(data):
         if func := data_transformers.get():
             data = func(data)
         return data

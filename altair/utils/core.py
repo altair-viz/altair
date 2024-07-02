@@ -27,12 +27,11 @@ from itertools import groupby
 from operator import itemgetter
 
 import jsonschema
-import pandas as pd
+import narwhals as nw
+from narwhals.dependencies import is_pandas_dataframe as _is_pandas_dataframe
 import numpy as np
-from pandas.api.types import infer_dtype
 
 from altair.utils.schemapi import SchemaBase, Undefined
-from altair.utils._dfi_types import Column, DtypeKind, DataFrame as DfiDataFrame
 
 if sys.version_info >= (3, 10):
     from typing import ParamSpec
@@ -43,8 +42,11 @@ else:
 if TYPE_CHECKING:
     from types import ModuleType
     import typing as t
-    from pandas.core.interchange.dataframe_protocol import Column as PandasColumn
-    import pyarrow as pa
+    from altair.vegalite.v5.schema._typing import StandardType_T as InferredVegaLiteType
+    from altair.utils._dfi_types import DataFrame as DfiDataFrame
+    from altair.utils.data import DataType
+    from narwhals.typing import IntoExpr
+    import pandas as pd
 
 V = TypeVar("V")
 P = ParamSpec("P")
@@ -198,10 +200,7 @@ TIMEUNITS = [
 ]
 
 
-InferredVegaLiteType = Literal["ordinal", "nominal", "quantitative", "temporal"]
-
-
-def infer_vegalite_type(
+def infer_vegalite_type_for_pandas(
     data: object,
 ) -> InferredVegaLiteType | tuple[InferredVegaLiteType, list[Any]]:
     """
@@ -212,6 +211,9 @@ def infer_vegalite_type(
     ----------
     data: object
     """
+    # This is safe to import here, as this function is only called on pandas input.
+    from pandas.api.types import infer_dtype
+
     typ = infer_dtype(data, skipna=False)
 
     if typ in {
@@ -303,7 +305,7 @@ def numpy_is_subtype(dtype: Any, subtype: Any) -> bool:
         return False
 
 
-def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+def sanitize_pandas_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Sanitize a DataFrame to prepare it for serialization.
 
     * Make a copy
@@ -320,6 +322,9 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     * convert dedicated string column to objects and replace NaN with None
     * Raise a ValueError for TimeDelta dtypes
     """
+    # This is safe to import here, as this function is only called on pandas input.
+    import pandas as pd
+
     df = df.copy()
 
     if isinstance(df.columns, pd.RangeIndex):
@@ -429,30 +434,45 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def sanitize_arrow_table(pa_table: pa.Table) -> pa.Table:
-    """Sanitize arrow table for JSON serialization"""
-    import pyarrow as pa
-    import pyarrow.compute as pc
-
-    arrays = []
-    schema = pa_table.schema
-    for name in schema.names:
-        array = pa_table[name]
-        dtype_name = str(schema.field(name).type)
-        if dtype_name.startswith(("timestamp", "date")):
-            arrays.append(pc.strftime(array))
-        elif dtype_name.startswith("duration"):
+def sanitize_narwhals_dataframe(data: nw.DataFrame) -> nw.DataFrame:
+    """Sanitize narwhals.DataFrame for JSON serialization"""
+    schema = data.schema
+    columns: list[IntoExpr] = []
+    for name, dtype in schema.items():
+        if dtype == nw.Date:
+            columns.append(nw.col(name).dt.to_string("%Y-%m-%d"))
+        elif dtype == nw.Datetime:
+            columns.append(nw.col(name).dt.to_string("%Y-%m-%dT%H:%M:%S%.f"))
+        elif dtype == nw.Duration:
             msg = (
-                f'Field "{name}" has type "{dtype_name}" which is '
+                f'Field "{name}" has type "{dtype}" which is '
                 "not supported by Altair. Please convert to "
                 "either a timestamp or a numerical value."
                 ""
             )
             raise ValueError(msg)
         else:
-            arrays.append(array)
+            columns.append(name)
+    return data.select(columns)
 
-    return pa.Table.from_arrays(arrays, names=schema.names)
+
+def narwhalify(data: DataType) -> nw.DataFrame:
+    """Wrap `data` in `narwhals.DataFrame`.
+
+    If `data` is not supported by Narwhals, but it is convertible
+    to a PyArrow table, then first convert to a PyArrow Table,
+    and then wrap in `narwhals.DataFrame`.
+    """
+    data = nw.from_native(data, eager_only=True, strict=False)
+    if isinstance(data, nw.DataFrame):
+        return data
+    if isinstance(data, DataFrameLike):
+        from altair.utils.data import arrow_table_from_dfi_dataframe
+
+        pa_table = arrow_table_from_dfi_dataframe(data)
+        return nw.from_native(pa_table, eager_only=True)
+    msg = f"Unsupported data type: {type(data)}"
+    raise TypeError(msg)
 
 
 def parse_shorthand(
@@ -498,6 +518,7 @@ def parse_shorthand(
 
     Examples
     --------
+    >>> import pandas as pd
     >>> data = pd.DataFrame({'foo': ['A', 'B', 'A', 'B'],
     ...                      'bar': [1, 2, 3, 4]})
 
@@ -537,7 +558,7 @@ def parse_shorthand(
     >>> parse_shorthand('count()', data) == {'aggregate': 'count', 'type': 'quantitative'}
     True
     """
-    from altair.utils._importers import pyarrow_available
+    from altair.utils.data import is_data_type
 
     if not shorthand:
         return {}
@@ -597,39 +618,18 @@ def parse_shorthand(
         attrs["type"] = "temporal"
 
     # if data is specified and type is not, infer type from data
-    if "type" not in attrs:
-        if pyarrow_available() and data is not None and isinstance(data, DataFrameLike):
-            dfi = data.__dataframe__()
-            if "field" in attrs:
-                unescaped_field = attrs["field"].replace("\\", "")
-                if unescaped_field in dfi.column_names():
-                    column = dfi.get_column_by_name(unescaped_field)
-                    try:
-                        attrs["type"] = infer_vegalite_type_for_dfi_column(column)
-                    except (NotImplementedError, AttributeError, ValueError):
-                        # Fall back to pandas-based inference.
-                        # Note: The AttributeError catch is a workaround for
-                        # https://github.com/pandas-dev/pandas/issues/55332
-                        if isinstance(data, pd.DataFrame):
-                            attrs["type"] = infer_vegalite_type(data[unescaped_field])
-                        else:
-                            raise
-
-                    if isinstance(attrs["type"], tuple):
-                        attrs["sort"] = attrs["type"][1]
-                        attrs["type"] = attrs["type"][0]
-        elif isinstance(data, pd.DataFrame):
-            # Fallback if pyarrow is not installed or if pandas is older than 1.5
-            #
-            # Remove escape sequences so that types can be inferred for columns with special characters
-            if "field" in attrs and attrs["field"].replace("\\", "") in data.columns:
-                attrs["type"] = infer_vegalite_type(
-                    data[attrs["field"].replace("\\", "")]
-                )
-                # ordered categorical dataframe columns return the type and sort order as a tuple
-                if isinstance(attrs["type"], tuple):
-                    attrs["sort"] = attrs["type"][1]
-                    attrs["type"] = attrs["type"][0]
+    if "type" not in attrs and is_data_type(data):
+        data_nw = narwhalify(data)
+        unescaped_field = attrs["field"].replace("\\", "")
+        if isinstance(data_nw, nw.DataFrame) and unescaped_field in data_nw.columns:
+            column = data_nw[unescaped_field]
+            if column.dtype in {nw.Object, nw.Unknown} and _is_pandas_dataframe(data):
+                attrs["type"] = infer_vegalite_type_for_pandas(nw.to_native(column))
+            else:
+                attrs["type"] = infer_vegalite_type_for_narwhals(column)
+            if isinstance(attrs["type"], tuple):
+                attrs["sort"] = attrs["type"][1]
+                attrs["type"] = attrs["type"][0]
 
     # If an unescaped colon is still present, it's often due to an incorrect data type specification
     # but could also be due to using a column name with ":" in it.
@@ -650,41 +650,23 @@ def parse_shorthand(
     return attrs
 
 
-def infer_vegalite_type_for_dfi_column(
-    column: Column | PandasColumn,
-) -> InferredVegaLiteType | tuple[InferredVegaLiteType, list[Any]]:
-    from pyarrow.interchange.from_dataframe import column_to_array
-
-    try:
-        kind = column.dtype[0]
-    except NotImplementedError as e:
-        # Edge case hack:
-        # dtype access fails for pandas column with datetime64[ns, UTC] type,
-        # but all we need to know is that its temporal, so check the
-        # error message for the presence of datetime64.
-        #
-        # See https://github.com/pandas-dev/pandas/issues/54239
-        if "datetime64" in e.args[0] or "timestamp" in e.args[0]:
-            return "temporal"
-        raise e
-
+def infer_vegalite_type_for_narwhals(
+    column: nw.Series,
+) -> InferredVegaLiteType | tuple[InferredVegaLiteType, list]:
+    dtype = column.dtype
     if (
-        kind == DtypeKind.CATEGORICAL
-        and column.describe_categorical["is_ordered"]
-        and column.describe_categorical["categories"] is not None
+        nw.is_ordered_categorical(column)
+        and len(categories := column.cat.get_categories()) > 0
     ):
-        # Treat ordered categorical column as Vega-Lite ordinal
-        categories_column = column.describe_categorical["categories"]
-        categories_array = column_to_array(categories_column)
-        return "ordinal", categories_array.to_pylist()
-    if kind in {DtypeKind.STRING, DtypeKind.CATEGORICAL, DtypeKind.BOOL}:
+        return "ordinal", categories.to_list()
+    if dtype in {nw.String, nw.Categorical, nw.Boolean}:
         return "nominal"
-    elif kind in {DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT}:
+    elif dtype.is_numeric():
         return "quantitative"
-    elif kind == DtypeKind.DATETIME:
+    elif dtype in {nw.Datetime, nw.Date}:
         return "temporal"
     else:
-        msg = f"Unexpected DtypeKind: {kind}"
+        msg = f"Unexpected DtypeKind: {dtype}"
         raise ValueError(msg)
 
 

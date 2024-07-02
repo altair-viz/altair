@@ -903,7 +903,7 @@ def test_serialize_numpy_types():
     out = m.to_json()
     dct = json.loads(out)
     assert dct == {
-        "a": {"date": "2019-01-01T00:00:00"},
+        "a": {"date": "2019-01-01"},
         "a2": {"int64": 1, "float64": 2},
         "b2": [0, 1, 2, 3],
     }

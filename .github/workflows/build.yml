@@ -39,7 +39,7 @@ jobs:
         # Python 3.8 wheels, so only run this job for Python 3.8
         if: ${{ matrix.python-version == '3.8' }}
         run: |
-          pip install pandas==0.25.3 numpy==1.17.5
+          pip install pandas==1.1.5 numpy==1.17.5
       - name: Test that schema generation has no effect
         run: |
           python tools/generate_schema_wrapper.py
