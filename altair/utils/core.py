@@ -654,8 +654,11 @@ def infer_vegalite_type_for_narwhals(
     column: nw.Series,
 ) -> InferredVegaLiteType | tuple[InferredVegaLiteType, list]:
     dtype = column.dtype
-    if nw.is_ordered_categorical(column):
-        return "ordinal", column.cat.get_categories().to_list()
+    if (
+        nw.is_ordered_categorical(column)
+        and len(categories := column.cat.get_categories()) > 0
+    ):
+        return "ordinal", categories.to_list()
     if dtype in {nw.String, nw.Categorical, nw.Boolean}:
         return "nominal"
     elif dtype.is_numeric():
